@@ -34,7 +34,7 @@ interface PongWorld {
     ball: Ball;
     paddleL: Paddle;
     paddleR: Paddle;
-    getColLines: (context: CanvasRenderingContext2D) => CollisionLine[];
+    getColLines: () => CollisionLine[];
 }
 
 type CollisionLine = {x1: number, y1: number, x2: number, y2: number}
@@ -43,7 +43,7 @@ type Ball = {
     state: BallState;
 
     getState: () => BallState;
-    update: (colLines: CollisionLine[],context: CanvasRenderingContext2D) => void;
+    update: (colLines: CollisionLine[]) => void;
     show: (context: CanvasRenderingContext2D) => void;
 }
 
@@ -66,7 +66,7 @@ const createBall = (initState: BallState) : Ball => {
         return state;
     }
 
-    const update = (colLines: CollisionLine[], context: CanvasRenderingContext2D) => {
+    const update = (colLines: CollisionLine[]) => {
         const velocity: {dx:number, dy:number} = {dx: Math.cos(state.angle) * ballSpeed, dy: Math.sin(state.angle)*ballSpeed};
         const newPos = {x: state.x + velocity.dx/innerWidth, y: state.y + velocity.dy/innerHeight}
         const ballCenter = {x: newPos.x * window.innerWidth, y: newPos.y * window.innerHeight};
@@ -94,10 +94,10 @@ const createBall = (initState: BallState) : Ball => {
             const distance = Math.sqrt(distX * distX + distY * distY);
             const collisionDistance = distance - state.radius;
 
-            let isColliding = 'red';
+            // let isColliding = 'red';
 
             if(collisionDistance <= 0){
-                isColliding = 'green';
+                // isColliding = 'green';
                 state.isColliding = true;
 
                 // Compute the normal of the line (perpendicular to the line)
@@ -155,7 +155,6 @@ const createBall = (initState: BallState) : Ball => {
 
 const createPaddle = (initState: PaddleState, pos: "L" | "R" ) : Paddle => {
     const state: PaddleState = initState;
-    const sinPos = Math.random() * 2 * Math.PI;
 
 
     const update = (ballCoords: BallState) => {
@@ -163,9 +162,6 @@ const createPaddle = (initState: PaddleState, pos: "L" | "R" ) : Paddle => {
         const dy = ballCoords.y*window.innerHeight - state.y*window.innerHeight+state.width/2;
         const angle = Math.atan2(dy,dx)
 
-        // state.y = 0.5 + (Math.sin(sinPos + frameCount/200))/8;
-
-        
         if((pos==="L" && Math.cos(ballCoords.angle) <= 0 || pos==="R" && Math.cos(ballCoords.angle) >= 0) ){
             state.y = dy>0 ? state.y + Math.abs(Math.sin(angle))* 2/window.innerHeight : state.y +  Math.abs(Math.sin(angle))* -2/window.innerHeight;
         }
@@ -178,7 +174,7 @@ const createPaddle = (initState: PaddleState, pos: "L" | "R" ) : Paddle => {
     }
 
     const getColLine = () : CollisionLine[] =>{
-        let colLines: CollisionLine[] = [];
+        const colLines: CollisionLine[] = [];
         const x = state.x*window.innerWidth - state.width/2;
         const y = state.y*window.innerHeight - state.height/2;
         
@@ -208,7 +204,7 @@ const initPongWorld = (canvasRef: MutableRefObject<HTMLCanvasElement | null>, in
     const paddleR = createPaddle(initState.paddleRState, "R");
     const ball = createBall(initState.ballState);
 
-    const getColLines = (context: CanvasRenderingContext2D) : CollisionLine[] => {
+    const getColLines = () : CollisionLine[] => {
         const colLines =  [
             ...paddleL.getColLine(),
             ...paddleR.getColLine(),
@@ -260,8 +256,8 @@ const draw = (context: CanvasRenderingContext2D, world : PongWorld, width: numbe
     world.paddleL.show(context);
     world.paddleR.show(context);
 
-    const colLines = world.getColLines(context);
-    world.ball.update(colLines, context);
+    const colLines = world.getColLines();
+    world.ball.update(colLines);
     world.ball.show(context);
 
  
@@ -275,16 +271,16 @@ const draw = (context: CanvasRenderingContext2D, world : PongWorld, width: numbe
 
 export default function BackgroundPong() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
-    const [pongState,setState] = useState<PongState>({
+    const pongInitState: PongState = {
         paddleRState:{width:50, height: 200, x: 0.85, y: 0.45, dir: 0}, 
         paddleLState:{width:50, height: 200, x: 0.15, y: 0.45, dir: 0}, 
         ballState:{radius: 30, x: 0.5, y: 0.5, isOutOfBounds: false, isColliding: false, angle:(Math.PI/4) * ((Math.random()-0.5)*2) + Math.PI}
-    });
+    };
 
 
     
     useEffect(()=> {
-        const cleanup = initPongWorld(canvasRef, pongState)
+        const cleanup = initPongWorld(canvasRef, pongInitState)
         
         const handleResize = () => {
             const canvas: HTMLCanvasElement | null = canvasRef.current;
